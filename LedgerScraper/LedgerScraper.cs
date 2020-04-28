@@ -39,11 +39,10 @@ namespace SeaOfThieves
             var connectionString = settings["TableConnectionString"];
             var storageAccount = CloudStorageAccount.Parse(connectionString);
             var tableClient = storageAccount.CreateCloudTableClient();
-            var tables = tableClient.ListTables();
 
             var tableEntry = new DynamicTableEntity();
             tableEntry.PartitionKey = GetPartitionKey();
-            tableEntry.RowKey = GetPartitionKey();
+            tableEntry.RowKey = GetRowKey();
 
             foreach (var faction in Factions)
             {
@@ -60,25 +59,22 @@ namespace SeaOfThieves
 
                 foreach (var band in factionEntry.Bands)
                 {
-                    var baseKey = $"{faction.abbr}-{band.Index}-";
+                    var baseKey = $"{faction.abbr}_{band.Index}_";
                     var results = band.Results.OrderBy(x => x.Score).ToArray();
 
-                    tableEntry[$"{baseKey}top-player"] = new EntityProperty(results[^1].GamerTag);
-                    tableEntry[$"{baseKey}top-rank"] = new EntityProperty(results[^1].Rank);
-                    tableEntry[$"{baseKey}top-score"] = new EntityProperty(results[^1].Score);
+                    tableEntry[$"{baseKey}top_player"] = new EntityProperty(results[^1].GamerTag);
+                    tableEntry[$"{baseKey}top_rank"] = new EntityProperty(results[^1].Rank);
+                    tableEntry[$"{baseKey}top_core"] = new EntityProperty(results[^1].Score);
                     
-                    tableEntry[$"{baseKey}bot-player"] = new EntityProperty(results[0].GamerTag);
-                    tableEntry[$"{baseKey}bot-rank"] = new EntityProperty(results[0].Rank);
-                    tableEntry[$"{baseKey}bot-score"] = new EntityProperty(results[0].Score);
+                    tableEntry[$"{baseKey}bot_player"] = new EntityProperty(results[0].GamerTag);
+                    tableEntry[$"{baseKey}bot_rank"] = new EntityProperty(results[0].Rank);
+                    tableEntry[$"{baseKey}bot_score"] = new EntityProperty(results[0].Score);
 
                 }
             }
             var table = tableClient.GetTableReference(settings["TableName"]);
-            Console.WriteLine(table.Exists());
             var op = TableOperation.InsertOrReplace(tableEntry);
             var result = await table.ExecuteAsync(op).ConfigureAwait(false);
-
-
         }
 
         public static string GetPartitionKey()
