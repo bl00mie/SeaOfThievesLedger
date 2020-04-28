@@ -24,20 +24,33 @@ namespace SeaOfThieves
         };
 
         [FunctionName("LedgerScraper")]
-        public static async void Run([TimerTrigger("%TimerTriggerSchedule%")]TimerInfo t, ILogger log, ExecutionContext context)
+        public static async void Run([TimerTrigger("%TimerTriggerSchedule%")]TimerInfo myTimer, ILogger log, ExecutionContext context)
         {
             log.LogInformation($"LedgerScraper Timer trigger function executed at: {DateTime.Now}.");
 
-            var settings = new ConfigurationBuilder()
+            IConfigurationRoot settings = null;
+            string[] cookies = null;
+            string connectionString = null;
+            CloudStorageAccount storageAccount = null;
+            CloudTableClient tableClient = null;
+
+            try
+            {
+                settings = new ConfigurationBuilder()
                     .SetBasePath(context.FunctionAppDirectory)
                     .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
                     .AddEnvironmentVariables()
                     .Build();
-
-            var cookies = JsonConvert.DeserializeObject<string[]>(settings["AuthCookies"]);
-            var connectionString = settings["AzureWebJobsStorage"];
-            var storageAccount = CloudStorageAccount.Parse(connectionString);
-            var tableClient = storageAccount.CreateCloudTableClient();
+                cookies = JsonConvert.DeserializeObject<string[]>(settings["AuthCookies"]);
+                connectionString = settings["AzureWebJobsStorage"];
+                storageAccount = CloudStorageAccount.Parse(connectionString);
+                tableClient = storageAccount.CreateCloudTableClient();
+            }
+            catch(Exception ex)
+            {
+                log.LogError(ex, "Failed to initialize Table Client.");
+                return;
+            }
 
             var tableEntry = new DynamicTableEntity
             {
@@ -62,12 +75,12 @@ namespace SeaOfThieves
                         if (data.error)
                         {
                             // TODO: re-authenticate to get a new rat=<jwt token> value
+                            log.LogInformation("Failed to grab data. Likely an invalid Auth cookie");
                             throw new Exception("Invalid Auth cookie.");
                         }
                         factionData.Add(data);
                     }
-
-
+                    
                     foreach (var band in factionData[0].Bands)
                     {
                         var baseKey = $"{abbr}_{band.Index}_";
@@ -115,11 +128,11 @@ namespace SeaOfThieves
             {
                 var table = tableClient.GetTableReference(settings["TableName"]);
                 var result = await table.ExecuteAsync(TableOperation.InsertOrReplace(tableEntry)).ConfigureAwait(false);
-                //TODO handle non-exception insert failures
+                //TODO: handle non-exception insert failures
                 foreach (var userEntry in userEntries.Values)
                 {
                     result = await table.ExecuteAsync(TableOperation.InsertOrReplace(userEntry)).ConfigureAwait(false);
-                    //TODO handle non-exception insert failures
+                    //TODO: handle non-exception insert failures
                 }
             }
             catch (Exception ex)
