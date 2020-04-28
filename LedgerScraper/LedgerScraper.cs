@@ -35,15 +35,16 @@ namespace SeaOfThieves
                     .Build();
 
             var cookies = JsonConvert.DeserializeObject<string[]>(settings["AuthCookies"]);
-            var connectionString = settings["TableConnectionString"];
+            var connectionString = settings["AzureWebJobsStorage"];
             var storageAccount = CloudStorageAccount.Parse(connectionString);
             var tableClient = storageAccount.CreateCloudTableClient();
 
             var tableEntry = new DynamicTableEntity
             {
                 PartitionKey = GetPartitionKey(),
-                RowKey = GetRowKey()
+                RowKey = GetFactionRowKey()
             };
+            var userEntries = new Dictionary<string, DynamicTableEntity>();
 
             try
             {
@@ -73,23 +74,32 @@ namespace SeaOfThieves
                         var results = band.Results.OrderBy(x => x.Score).ToArray();
 
                         tableEntry[$"{baseKey}hi_player"] = new EntityProperty(results[^1].GamerTag);
-                        tableEntry[$"{baseKey}hi_rank"] = new EntityProperty(results[^1].Rank);
-                        tableEntry[$"{baseKey}hi_score"] = new EntityProperty(results[^1].Score);
+                        tableEntry[$"{baseKey}hi_rank"]   = new EntityProperty(results[^1].Rank);
+                        tableEntry[$"{baseKey}hi_score"]  = new EntityProperty(results[^1].Score);
                     
                         tableEntry[$"{baseKey}lo_player"] = new EntityProperty(results[0].GamerTag);
-                        tableEntry[$"{baseKey}lo_rank"] = new EntityProperty(results[0].Rank);
-                        tableEntry[$"{baseKey}lo_score"] = new EntityProperty(results[0].Score);
+                        tableEntry[$"{baseKey}lo_rank"]   = new EntityProperty(results[0].Rank);
+                        tableEntry[$"{baseKey}lo_score"]  = new EntityProperty(results[0].Score);
                     }
 
-                    foreach (var faction in factionData)
+                    foreach (var userData in factionData)
                     {
-                        foreach (var band in faction.Bands)
+                        foreach (var band in userData.Bands)
                         {
                             if (band.Results.Count() == 3)
                             {
                                 var results = band.Results.OrderBy(x => x.Score).ToArray();
-                                tableEntry[$"{abbr}_{results[1].GamerTag}_rank"] = new EntityProperty(results[1].Rank);
-                                tableEntry[$"{abbr}_{results[1].GamerTag}_score"] = new EntityProperty(results[1].Score);
+                                if (!userEntries.ContainsKey(results[1].GamerTag))
+                                {
+                                    userEntries[results[1].GamerTag] = new DynamicTableEntity
+                                    {
+                                        PartitionKey = GetPartitionKey(),
+                                        RowKey = GetUserRowKey(results[1].GamerTag)
+                                    };
+                                }
+                                var entity = userEntries[results[1].GamerTag];
+                                entity[$"{abbr}_rank"]  = new EntityProperty(results[1].Rank);
+                                entity[$"{abbr}_score"] = new EntityProperty(results[1].Score);
                             }
                         }
                     }
@@ -103,9 +113,14 @@ namespace SeaOfThieves
             log.LogInformation("Writing scraped faction data to the Storage Table...");
             try
             {
-                var table = tableClient.GetTableReference(settings["FactionTableName"]);
-                var op = TableOperation.InsertOrReplace(tableEntry);
-                var result = await table.ExecuteAsync(op).ConfigureAwait(false);
+                var table = tableClient.GetTableReference(settings["TableName"]);
+                var result = await table.ExecuteAsync(TableOperation.InsertOrReplace(tableEntry)).ConfigureAwait(false);
+                //TODO handle non-exception insert failures
+                foreach (var userEntry in userEntries.Values)
+                {
+                    result = await table.ExecuteAsync(TableOperation.InsertOrReplace(userEntry)).ConfigureAwait(false);
+                    //TODO handle non-exception insert failures
+                }
             }
             catch (Exception ex)
             {
@@ -124,9 +139,14 @@ namespace SeaOfThieves
             return $"Season-{now:yyyyMM}";
         }
 
-        public static string GetRowKey()
+        public static string GetFactionRowKey()
         {
-            return $"{DateTime.UtcNow:yyyyMMdd-HH}";
+            return $"faction-{DateTime.UtcNow:yyyyMMdd-HH}";
+        }
+
+        public static string GetUserRowKey(string gamerTag)
+        {
+            return $"user-{DateTime.UtcNow:yyyyMMdd-HH}-{gamerTag}";
         }
     }
 }
