@@ -4,7 +4,7 @@ using System.Text;
 
 namespace LedgerScraper.Model
 {
-    public class FactionEntry
+    public class FactionData
     {
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }

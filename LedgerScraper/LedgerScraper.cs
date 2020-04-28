@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -33,7 +34,7 @@ namespace SeaOfThieves
                     .AddEnvironmentVariables()
                     .Build();
 
-            var cookie = $"Cookie: {settings["DefaultCookie"]}";
+            var cookies = JsonConvert.DeserializeObject<string[]>(settings["AuthCookies"]);
             var connectionString = settings["TableConnectionString"];
             var storageAccount = CloudStorageAccount.Parse(connectionString);
             var tableClient = storageAccount.CreateCloudTableClient();
@@ -48,18 +49,25 @@ namespace SeaOfThieves
             {
                 foreach (var (url, abbr) in Factions)
                 {
-                    var request = HttpWebRequest.Create($"https://www.seaofthieves.com/api/ledger/{url}");
-                    request.Headers.Add(cookie);
-                    var response = await request.GetResponseAsync();
-
-                    var payload = await new StreamReader(response.GetResponseStream()).ReadToEndAsync().ConfigureAwait(false);
-                    var factionEntry = JsonConvert.DeserializeObject<FactionEntry>(payload);
-                    if (factionEntry.error)
+                    List<FactionData> factionData = new List<FactionData>();
+                    foreach (var cookie in cookies)
                     {
-                        // TODO: re-authenticate to get a new rat=<jwt token> value
+                        var request = HttpWebRequest.Create($"https://www.seaofthieves.com/api/ledger/{url}");
+                        request.Headers.Add($"Cookie: rat={cookie}");
+                        var response = await request.GetResponseAsync();
+
+                        var payload = await new StreamReader(response.GetResponseStream()).ReadToEndAsync().ConfigureAwait(false);
+                        var data = JsonConvert.DeserializeObject<FactionData>(payload);
+                        if (data.error)
+                        {
+                            // TODO: re-authenticate to get a new rat=<jwt token> value
+                            throw new Exception("Invalid Auth cookie.");
+                        }
+                        factionData.Add(data);
                     }
 
-                    foreach (var band in factionEntry.Bands)
+
+                    foreach (var band in factionData[0].Bands)
                     {
                         var baseKey = $"{abbr}_{band.Index}_";
                         var results = band.Results.OrderBy(x => x.Score).ToArray();
@@ -71,7 +79,19 @@ namespace SeaOfThieves
                         tableEntry[$"{baseKey}lo_player"] = new EntityProperty(results[0].GamerTag);
                         tableEntry[$"{baseKey}lo_rank"] = new EntityProperty(results[0].Rank);
                         tableEntry[$"{baseKey}lo_score"] = new EntityProperty(results[0].Score);
+                    }
 
+                    foreach (var faction in factionData)
+                    {
+                        foreach (var band in faction.Bands)
+                        {
+                            if (band.Results.Count() == 3)
+                            {
+                                var results = band.Results.OrderBy(x => x.Score).ToArray();
+                                tableEntry[$"{abbr}_{results[1].GamerTag}_rank"] = new EntityProperty(results[1].Rank);
+                                tableEntry[$"{abbr}_{results[1].GamerTag}_score"] = new EntityProperty(results[1].Score);
+                            }
+                        }
                     }
                 }
             }
@@ -83,7 +103,7 @@ namespace SeaOfThieves
             log.LogInformation("Writing scraped faction data to the Storage Table...");
             try
             {
-                var table = tableClient.GetTableReference(settings["TableName"]);
+                var table = tableClient.GetTableReference(settings["FactionTableName"]);
                 var op = TableOperation.InsertOrReplace(tableEntry);
                 var result = await table.ExecuteAsync(op).ConfigureAwait(false);
             }

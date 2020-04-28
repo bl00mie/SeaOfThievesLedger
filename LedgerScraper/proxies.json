@@ -1,0 +1,19 @@
+﻿{
+  "$schema": "http://json.schemastore.org/proxies",
+  "proxies": {
+    "ledger": {
+      "matchCondition": {
+        "methods": [ "GET" ],
+        "route": "/ledger"
+      },
+      "backendUri": "https://storageaccountseaof993a.blob.core.windows.net/sotledger/index.html"
+    },
+    "siteroot": {
+      "matchCondition": {
+        "methods": [ "GET" ],
+        "route": ""
+      },
+      "backendUri": "https://storageaccountseaof993a.blob.core.windows.net/sotledger/index.html"
+    }
+  }
+}
