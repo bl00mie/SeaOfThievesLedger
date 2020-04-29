@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -7,17 +8,17 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Azure.Cosmos.Table;
-using System.Linq;
 using LedgerScraper.Model;
 using System.Globalization;
 
 namespace LedgerScraper
 {
-    public static class Ledger
+    public static class User
     {
-        [FunctionName("Ledger")]
+        [FunctionName("User")]
         public static IActionResult Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/{gamerTag}")] HttpRequest req,
+            string gamerTag,
             ILogger log,
             ExecutionContext context)
         {
@@ -48,7 +49,6 @@ namespace LedgerScraper
             }
 
             DateTime season = DateTime.UtcNow;
-            
             var seasonStr = req.Query["season"].ToString();
             if (seasonStr != "")
             {
@@ -62,16 +62,19 @@ namespace LedgerScraper
                 }
             }
 
-            var responseObject = new EntitiesResponse<LedgerEntity>();
+            var responseObject = new EntitiesResponse<UserEntity>();
             var table = tableClient.GetTableReference(settings["TableName"]);
-            var query = table.CreateQuery<LedgerEntity>()
+            var query = table.CreateQuery<UserEntity>()
                 .Where(x => x.PartitionKey == $"{Util.GetPartitionKey(season)}")
-                .Where(x => x.RowKey.CompareTo($"faction-") > 0)
-                .Where(x => x.RowKey.CompareTo($"faction-{season.AddMonths(1):yyyyMM}01-00") < 0);
+                .Where(x => x.RowKey.CompareTo($"user-") > 0)
+                .Where(x => x.RowKey.CompareTo($"user-{season.AddMonths(1):yyyyMM}01-00") < 0);
 
-            foreach (var thing in query)
+            foreach (var entity in query)
             {
-                responseObject.Entries[thing.RowKey] = thing;
+                if (entity.RowKey.EndsWith($"-{gamerTag}"))
+                {
+                    responseObject.Entries[entity.RowKey] = entity;
+                }
             }
             var resp = new OkObjectResult(responseObject);
             resp.ContentTypes.Add(new Microsoft.Net.Http.Headers.MediaTypeHeaderValue("application/json"));

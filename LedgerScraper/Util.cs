@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace LedgerScraper
 {
@@ -8,22 +6,34 @@ namespace LedgerScraper
     {
         public static string GetPartitionKey()
         {
-            DateTime now = DateTime.UtcNow;
-            if (now.Month == 4 && now.Year == 2020)
-            {
+            return GetPartitionKey(DateTime.UtcNow);
+        }
+
+        public static string GetPartitionKey(DateTime season)
+        {
+            if (season.Month == 4 && season.Year == 2020)
                 return "Season-202005";
-            }
-            return $"Season-{now:yyyyMM}";
+            return $"Season-{season:yyyyMM}";
         }
 
         public static string GetFactionRowKey()
         {
-            return $"faction-{DateTime.UtcNow:yyyyMMdd-HH}";
+            return GetFactionRowKey(DateTime.UtcNow);
+        }
+
+        public static string GetFactionRowKey(DateTime season)
+        {
+            return $"faction-{season:yyyyMMdd-HH}";
         }
 
         public static string GetUserRowKey(string gamerTag)
         {
-            return $"user-{DateTime.UtcNow:yyyyMMdd-HH}-{gamerTag}";
+            return GetUserRowKey(gamerTag, DateTime.UtcNow);
+        }
+
+        public static string GetUserRowKey(string gamerTag, DateTime season)
+        {
+            return $"user-{season:yyyyMMdd-HH}-{gamerTag}";
         }
     }
 }
