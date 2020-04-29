@@ -10,7 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
-namespace SeaOfThieves
+namespace LedgerScraper
 {
     public static class LedgerScraper
     {
@@ -54,8 +54,8 @@ namespace SeaOfThieves
 
             var tableEntry = new DynamicTableEntity
             {
-                PartitionKey = GetPartitionKey(),
-                RowKey = GetFactionRowKey()
+                PartitionKey = Util.GetPartitionKey(),
+                RowKey = Util.GetFactionRowKey()
             };
             var userEntries = new Dictionary<string, DynamicTableEntity>();
 
@@ -106,8 +106,8 @@ namespace SeaOfThieves
                                 {
                                     userEntries[results[1].GamerTag] = new DynamicTableEntity
                                     {
-                                        PartitionKey = GetPartitionKey(),
-                                        RowKey = GetUserRowKey(results[1].GamerTag)
+                                        PartitionKey = Util.GetPartitionKey(),
+                                        RowKey = Util.GetUserRowKey(results[1].GamerTag)
                                     };
                                 }
                                 var entity = userEntries[results[1].GamerTag];
@@ -140,26 +140,6 @@ namespace SeaOfThieves
                 log.LogError(ex, "Failed to write entry to Storage Table.");
                 return;
             }
-        }
-
-        public static string GetPartitionKey()
-        {
-            DateTime now = DateTime.UtcNow;
-            if (now.Month == 4 && now.Year == 2020)
-            {
-                return "Season-202005";
-            }
-            return $"Season-{now:yyyyMM}";
-        }
-
-        public static string GetFactionRowKey()
-        {
-            return $"faction-{DateTime.UtcNow:yyyyMMdd-HH}";
-        }
-
-        public static string GetUserRowKey(string gamerTag)
-        {
-            return $"user-{DateTime.UtcNow:yyyyMMdd-HH}-{gamerTag}";
         }
     }
 }
