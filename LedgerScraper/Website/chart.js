@@ -1,4 +1,7 @@
-﻿// library functions
+﻿/// <reference types='d3' />
+/// <reference types='jquery' />
+
+// library functions
 function getSeason(date) {
     // javascript Date.getMonth() is STUPID, and returns the 0-based index of the month rather than the month,
     // so checking for "Is it April?" means checking if getMonth() == 3
