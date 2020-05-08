@@ -45,7 +45,7 @@ namespace LedgerScraper
             catch (Exception ex)
             {
                 log.LogError(ex, "Failed to initialize Table Client.");
-                return new BadRequestResult();
+                return new BadRequestObjectResult("Failed to initialize TableClient");
             }
 
             DateTime season = DateTime.UtcNow;

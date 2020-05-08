@@ -7,15 +7,15 @@ namespace LedgerScraper.Model
 {
     class UserEntity : TableEntity
     {
-        public int af_score { get; set; }
-        public int af_rank { get; set; }
-        public int gh_score { get; set; }
-        public int gh_rank { get; set; }
-        public int ma_score { get; set; }
-        public int ma_rank { get; set; }
-        public int os_score { get; set; }
-        public int os_rank { get; set; }
-        public int rb_score { get; set; }
-        public int rb_rank { get; set; }
+        public long af_score { get; set; }
+        public long af_rank { get; set; }
+        public long gh_score { get; set; }
+        public long gh_rank { get; set; }
+        public long ma_score { get; set; }
+        public long ma_rank { get; set; }
+        public long os_score { get; set; }
+        public long os_rank { get; set; }
+        public long rb_score { get; set; }
+        public long rb_rank { get; set; }
     }
 }
