@@ -7,6 +7,13 @@
         "route": ""
       },
       "backendUri": "https://sotledger.blob.core.windows.net/sotledger/index.html"
+    },
+    "chartjs": {
+      "matchCondition": {
+        "methods": [ "GET" ],
+        "route": "chart.js"
+      },
+      "backendUri": "https://sotledger.blob.core.windows.net/sotledger/chart.js"
     }
   }
 }
