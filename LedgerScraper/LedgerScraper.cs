@@ -121,7 +121,6 @@ namespace LedgerScraper
                 log.LogError(ex, "Failed to retrieve faction ledger information");
                 return;
             }
-            log.LogInformation("Writing scraped faction data to the Storage Table...");
             try
             {
                 var table = tableClient.GetTableReference(settings["TableName"]);
