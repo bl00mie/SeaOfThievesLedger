@@ -1,7 +1,12 @@
 ﻿/// <reference types='d3' />
 /// <reference types='jquery' />
 
+/// @ts-check
+
 // library functions
+/**
+ * @param {Date} date
+ */
 function getSeason(date) {
     // javascript Date.getMonth() is STUPID, and returns the 0-based index of the month rather than the month,
     // so checking for "Is it April?" means checking if getMonth() == 3
@@ -14,6 +19,9 @@ function getSeason(date) {
 };
 
 let hashParams = null;
+/**
+ * @param {string} name
+ */
 function hashParam(name) {
     if (!hashParams) {
         hashParams = {};
@@ -25,11 +33,9 @@ function hashParam(name) {
     return hashParams[name];
 };
 
-function param(name) {
-    if (name = (new RegExp('[?&]' + encodeURIComponent(name) + '=([^&]*)')).exec(location.search))
-        return decodeURIComponent(name[1]);
-};
-
+/**
+ * @param {string | any[]} arr
+ */
 function last(arr) {
     return arr[arr.length-1];
 }
@@ -38,6 +44,7 @@ function last(arr) {
 const API_URL = "http://sotledger.azurewebsites.net/api/";
 const USER_URL = API_URL + "user/";
 const LEDGER_URL = API_URL + "ledger";
+
 const FACTIONS = {
     "af": {
         name: "Athena's Fortune",
@@ -62,7 +69,9 @@ const FACTIONS = {
 };
 
 // global variables
-let seasonData = { title: "Sea of Thieves Top Quartile Cut-offs for all five factions", factions: [], dates: [] };
+let seasonData = {
+    title: "Sea of Thieves Top Quartile Cut-offs for all five factions", factions: {}, dates: []
+};
 let userData = {};
 let season = hashParam("season") || getSeason(new Date());
 let user = null;
@@ -133,14 +142,17 @@ let margin = { top: 10, right: 80, bottom: 30, left: 80 },
 let x = d3.scaleTime().range([0, width]);
 let y = d3.scaleLinear().range([height, 0]);
 
-let xAxis = d3.axisBottom().scale(x).ticks(5);
-let yAxis = d3.axisLeft().scale(y).ticks(5);
-let yAxisR = d3.axisRight().scale(y).ticks(5);
+let xAxis = d3.axisBottom(x).ticks(5);
+let yAxis = d3.axisLeft(y).ticks(5);
+let yAxisR = d3.axisRight(y).ticks(5);
 
 let scoreline = d3.line()
-    .x(function (d, i) { return x(seasonData.dates[i]); })
-    .y(function (d) { return y(d); });
+    .x((d, i) => x(seasonData.dates[i]))
+    .y(d => y(d));
 
+/**
+ * @param {string} facKey
+ */
 function tooltip(facKey) {
     const val = FACTIONS[facKey].name + ": " + userData[facKey] + "/" + last(seasonData.factions[facKey].values);
     return val;
