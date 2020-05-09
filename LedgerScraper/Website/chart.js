@@ -41,9 +41,7 @@ function last(arr) {
 }
 
 // constants
-const API_URL = "http://sotledger.azurewebsites.net/api/";
-const USER_URL = API_URL + "user/";
-const LEDGER_URL = API_URL + "ledger";
+const API_URL = "https://sotledger.azurewebsites.net/api";
 
 const FACTIONS = {
     "af": {
@@ -81,7 +79,7 @@ function refreshData() {
     $.ajax({
         async: true,
         type: "GET",
-        url: LEDGER_URL + "?season=" + season,
+        url: `${API_URL}/ledger?season=${season}`,
         headers: {
             Accept: "application/json"
         },
@@ -115,7 +113,7 @@ function refreshUserData() {
         $.ajax({
             async: true,
             type: "GET",
-            url: USER_URL + user + "?season=" + season,
+            url: `${API_URL}/user/${user}?season=${season}`,
             headers: {
                 Accept: "application/json"
             },
@@ -123,7 +121,7 @@ function refreshUserData() {
                 let keys = Object.keys(data.entries).sort();
                 let last = data.entries[keys[keys.length - 1]];
                 Object.keys(FACTIONS).forEach(function (facKey) {
-                    const score = last[facKey + "_score"];
+                    const score = last[`${facKey}_score`];
                     if (score > seasonData.maxScore) seasonData.maxScore = score;
                     if (score < seasonData.minScore) seasonData.minScore = score;
                     userData[facKey] = score;
@@ -154,8 +152,7 @@ let scoreline = d3.line()
  * @param {string} facKey
  */
 function tooltip(facKey) {
-    const val = FACTIONS[facKey].name + ": " + userData[facKey] + "/" + last(seasonData.factions[facKey].values);
-    return val;
+    return `${FACTIONS[facKey].name}: ${userData[facKey]} / ${last(seasonData.factions[facKey].values)}`;
 }
 
 function chart() {
@@ -163,7 +160,8 @@ function chart() {
     x.domain(d3.extent(seasonData.dates, d => d));
     y.domain([seasonData.minScore, seasonData.maxScore]);
 
-    Object.values(seasonData.factions).forEach(function (faction) {
+    Object.keys(seasonData.factions).forEach(function (facKey) {
+        const faction = seasonData.factions[facKey];
         svg.append("path")
             .attr("class", "line")
             .style("stroke", faction.rgb)
@@ -182,14 +180,14 @@ function chart() {
 
     svg.append("g")
         .attr("class", "x axis")
-        .attr("transform", "translate(0," + height + ")")
+        .attr("transform", `translate(0,${height})`)
         .call(xAxis);
     svg.append("g")
         .attr("class", "y axis")
         .call(yAxis);
     svg.append("g")
         .attr("class", "y axis")
-        .attr("transform", "translate(" + width + " ,0)")
+        .attr("transform", `translate(${width},0)`)
         .call(yAxisR);
 
     return svg.node();
@@ -204,6 +202,6 @@ $(document).ready(function () {
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        .attr("transform", `translate(${margin.left},${margin.top})`);
     refreshData();
 });
