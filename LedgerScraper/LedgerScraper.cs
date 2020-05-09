@@ -26,10 +26,8 @@ namespace LedgerScraper
         [FunctionName("LedgerScraper")]
         public static async void Run([TimerTrigger("%TimerTriggerSchedule%")]TimerInfo myTimer, ILogger log, ExecutionContext context)
         {
-            log.LogInformation($"LedgerScraper Timer trigger function executed at: {DateTime.Now}.");
-
             IConfigurationRoot settings = null;
-            string[] cookies = null;
+            Dictionary<string,string> cookies = null;
             string connectionString = null;
             CloudStorageAccount storageAccount = null;
             CloudTableClient tableClient = null;
@@ -41,7 +39,7 @@ namespace LedgerScraper
                     .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
                     .AddEnvironmentVariables()
                     .Build();
-                cookies = JsonConvert.DeserializeObject<string[]>(settings["AuthCookies"]);
+                cookies = JsonConvert.DeserializeObject<Dictionary<string,string>>(settings["AuthCookies"]);
                 connectionString = settings["AzureWebJobsStorage"];
                 storageAccount = CloudStorageAccount.Parse(connectionString);
                 tableClient = storageAccount.CreateCloudTableClient();
@@ -64,7 +62,7 @@ namespace LedgerScraper
                 foreach (var (url, abbr) in Factions)
                 {
                     List<FactionData> factionData = new List<FactionData>();
-                    foreach (var cookie in cookies)
+                    foreach (var cookie in cookies.Values)
                     {
                         var request = HttpWebRequest.Create($"https://www.seaofthieves.com/api/ledger/{url}");
                         request.Headers.Add($"Cookie: rat={cookie}");

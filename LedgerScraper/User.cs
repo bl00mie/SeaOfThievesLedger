@@ -22,8 +22,6 @@ namespace LedgerScraper
             ILogger log,
             ExecutionContext context)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
-
             IConfigurationRoot settings = null;
             string[] cookies = null;
             string connectionString = null;
