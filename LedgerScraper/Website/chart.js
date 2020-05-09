@@ -30,6 +30,10 @@ function param(name) {
         return decodeURIComponent(name[1]);
 };
 
+function last(arr) {
+    return arr[arr.length-1];
+}
+
 // constants
 const API_URL = "http://sotledger.azurewebsites.net/api/";
 const USER_URL = API_URL + "user/";
@@ -59,6 +63,7 @@ const FACTIONS = {
 
 // global variables
 let seasonData = { title: "Sea of Thieves Top Quartile Cut-offs for all five factions", factions: [], dates: [] };
+let userData = {};
 let season = hashParam("season") || getSeason(new Date());
 let user = null;
 if (hashParam("user")) user = hashParam("user");
@@ -74,7 +79,7 @@ function refreshData() {
         success: function (data) {
             seasonData.minScore = Number.MAX_VALUE;
             seasonData.maxScore = 0;
-            seasonData.factions = [];
+            seasonData.factions = {};
             let rowKeys = Object.keys(data.entries).sort();
             Object.keys(FACTIONS).forEach(function (facKey) {
                 let facData = {
@@ -88,7 +93,7 @@ function refreshData() {
                     if (val > seasonData.maxScore) seasonData.maxScore = val;
                     facData.values.push(val);
                 });
-                seasonData.factions.push(facData);
+                seasonData.factions[facKey] = facData;
             });
             seasonData.dates = rowKeys.map(d3.timeParse("faction-%Y%m%d-%H"));
             refreshUserData();
@@ -109,13 +114,16 @@ function refreshUserData() {
                 let keys = Object.keys(data.entries).sort();
                 let last = data.entries[keys[keys.length - 1]];
                 Object.keys(FACTIONS).forEach(function (facKey) {
-                    userData[facKey] = last[facKey + "_score"];
+                    const score = last[facKey + "_score"];
+                    if (score > seasonData.maxScore) seasonData.maxScore = score;
+                    if (score < seasonData.minScore) seasonData.minScore = score;
+                    userData[facKey] = score;
                 });
-                console.log(userData);
+                chart();
             }
         });
     }
-    chart();
+    else chart();
 };
 
 let margin = { top: 10, right: 80, bottom: 30, left: 80 },
@@ -133,15 +141,31 @@ let scoreline = d3.line()
     .x(function (d, i) { return x(seasonData.dates[i]); })
     .y(function (d) { return y(d); });
 
+function tooltip(facKey) {
+    const val = FACTIONS[facKey].name + ": " + userData[facKey] + "/" + last(seasonData.factions[facKey].values);
+    return val;
+}
+
 function chart() {
+
     x.domain(d3.extent(seasonData.dates, d => d));
     y.domain([seasonData.minScore, seasonData.maxScore]);
 
-    seasonData.factions.forEach(function (faction) {
+    Object.values(seasonData.factions).forEach(function (faction) {
         svg.append("path")
             .attr("class", "line")
             .style("stroke", faction.rgb)
             .attr("d", scoreline(faction.values));
+    });
+
+    Object.keys(userData).forEach(function (facKey) {
+        svg.append("circle")
+            .attr("cx", width)
+            .attr("cy", y(userData[facKey]))
+            .attr("r", 6)
+            .attr("fill", FACTIONS[facKey].rgb)
+            .append("title")
+                .text(tooltip(facKey));
     });
 
     svg.append("g")
@@ -155,6 +179,8 @@ function chart() {
         .attr("class", "y axis")
         .attr("transform", "translate(" + width + " ,0)")
         .call(yAxisR);
+
+    return svg.node();
 };
 
 let svg = null;
