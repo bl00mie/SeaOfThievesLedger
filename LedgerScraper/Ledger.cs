@@ -10,6 +10,7 @@ using Microsoft.Azure.Cosmos.Table;
 using System.Linq;
 using LedgerScraper.Model;
 using System.Globalization;
+using System.Collections.Generic;
 
 namespace LedgerScraper
 {
@@ -22,7 +23,6 @@ namespace LedgerScraper
             ExecutionContext context)
         {
             IConfigurationRoot settings = null;
-            string[] cookies = null;
             string connectionString = null;
             CloudStorageAccount storageAccount = null;
             CloudTableClient tableClient = null;
@@ -34,7 +34,6 @@ namespace LedgerScraper
                     .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
                     .AddEnvironmentVariables()
                     .Build();
-                cookies = JsonConvert.DeserializeObject<string[]>(settings["AuthCookies"]);
                 connectionString = settings["AzureWebJobsStorage"];
                 storageAccount = CloudStorageAccount.Parse(connectionString);
                 tableClient = storageAccount.CreateCloudTableClient();

@@ -156,9 +156,9 @@ function tooltip(facKey) {
 }
 
 function chart() {
-
     x.domain(d3.extent(seasonData.dates, d => d));
-    y.domain([seasonData.minScore, seasonData.maxScore]);
+    //y.domain([seasonData.minScore, seasonData.maxScore]);
+    y.domain([0, seasonData.maxScore]);
 
     Object.keys(seasonData.factions).forEach(function (facKey) {
         const faction = seasonData.factions[facKey];

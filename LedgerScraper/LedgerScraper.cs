@@ -66,6 +66,7 @@ namespace LedgerScraper
                     {
                         var request = HttpWebRequest.Create($"https://www.seaofthieves.com/api/ledger/{url}");
                         request.Headers.Add($"Cookie: rat={cookie}");
+                        request.Headers.Add("referer", "https://www.seaofthieves.com/leaderboards");
                         var response = await request.GetResponseAsync();
 
                         var payload = await new StreamReader(response.GetResponseStream()).ReadToEndAsync().ConfigureAwait(false);
